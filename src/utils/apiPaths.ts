@@ -1,4 +1,4 @@
-export const BASE_URL = 'http://localhost:8000/api'
+export const BASE_URL = 'https://resume-builder-hfxc.onrender.com/api'
 
 // utils/apiPaths.js
 export const API_PATHS = {

@@ -1,7 +1,8 @@
-import axios from 'axios' 
+import axios from 'axios'
+import { BASE_URL } from './apiPaths'
 
 const axiosInstance = axios.create({
-	baseURL: 'http://localhost:8000/api',
+	baseURL: BASE_URL,
 	timeout: 10000,
 	headers: {
 		'Content-Type': 'application/json',
@@ -40,4 +41,4 @@ axiosInstance.interceptors.response.use(
 		return Promise.reject(error)
 	}
 )
- export default axiosInstance
+export default axiosInstance
