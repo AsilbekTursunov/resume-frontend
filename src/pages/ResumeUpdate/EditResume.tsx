@@ -21,14 +21,13 @@ import RenderResume from '../../components/ResumeTemplates/RenderResume'
 import Modal from '../../components/Modal'
 import ThemeSelector from './ThemeSelector'
 import { uploadImage } from '../../utils/uploadImage'
-import { jsPDF } from 'jspdf'
+import jsPDF from 'jspdf'
 
 const EditResume = () => {
 	const { id: resumeId } = useParams()
 	const navigate = useNavigate()
 
 	const resumeRef = useRef<HTMLDivElement>(null)
-	const resumeDownloadRef = useRef<HTMLDivElement>(null!)
 
 	const [baseWidth, setBaseWidth] = useState(800)
 
@@ -524,13 +523,13 @@ const EditResume = () => {
 	const reactToPrintFn = async () => {
 		const element = document.getElementById('resume')
 		fixTailwindColors(element!)
-		const imageBaseUrl = await captureElementAsImage(element as HTMLDivElement) 
-		const thumbnailFile = dataURLtoFile(imageBaseUrl, `resume-${resumeId}.png`) 
-		const url = URL.createObjectURL(thumbnailFile); 
+		const imageBaseUrl = await captureElementAsImage(element as HTMLDivElement)
+		const thumbnailFile = dataURLtoFile(imageBaseUrl, `resume-${resumeId}.png`)
+		const url = URL.createObjectURL(thumbnailFile)
 		// // Rasmni yuklab olish
-		const image = new Image() 
+		const image = new Image()
 		image.src = url
-		
+
 		image.onload = () => {
 			const pdf = new jsPDF({
 				orientation: image.width > image.height ? 'landscape' : 'portrait',
@@ -542,7 +541,6 @@ const EditResume = () => {
 			pdf.addImage(imageBaseUrl, 'JPEG', 0, 0, image.width, image.height, 'FAST')
 			pdf.save(`${Date.now()}.pdf`)
 		}
-
 	}
 
 	// Function to update baseWidth based on the resume container size
