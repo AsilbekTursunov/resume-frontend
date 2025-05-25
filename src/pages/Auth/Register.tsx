@@ -18,6 +18,7 @@ const Register = ({ setCurrentPage, onClose }: ILogin) => {
 	const [userName, setUserName] = useState('')
 	const [password, setPassword] = useState<string>('')
 	const [userNameError, setUserNameError] = useState('')
+	const [registerError, setregisterError] = useState('')
 	const [emailError, setEmailError] = useState('')
 	const [passwordError, setPasswordError] = useState('')
 	const navigate = useNavigate()
@@ -49,10 +50,14 @@ const Register = ({ setCurrentPage, onClose }: ILogin) => {
 					name: userName,
 				})
 				updateUser(response.data)
-				onClose()
 				navigate('/dashboard')
-			} catch (error) {
-				console.error('Register error', error)
+			} catch (error: any) {
+				if (error.response && error.response.status == 404 && error.response.data?.message) {
+					setregisterError(error.response.data.message)
+					setTimeout(() => {
+						setregisterError('')
+					}, 2000)
+				}
 			} finally {
 				setLoading(false)
 			}
@@ -64,6 +69,7 @@ const Register = ({ setCurrentPage, onClose }: ILogin) => {
 			<p className='text-xs text-slate-700 mt-1.5 mb-6'>
 				Join us today by entering your details below
 			</p>
+
 			{/* ProfileImageSelector */}
 			<ProfilePhotoSelector
 				image={image}
@@ -96,6 +102,11 @@ const Register = ({ setCurrentPage, onClose }: ILogin) => {
 					type={'password'}
 				/>
 				{passwordError && <p className='text-red-500 text-xs pb-2.5'>{passwordError}</p>}
+				{registerError && (
+					<p className='text-red-500 text-xs py-2 mb-4 bg-red-200 rounded-md flex items-center justify-center text-center w-full'>
+						{registerError}
+					</p>
+				)}
 
 				<button type='submit' className='btn-primary'>
 					{loading ? <BiLoaderCircle className='size-5 animate-spin' /> : 'REGISTER'}

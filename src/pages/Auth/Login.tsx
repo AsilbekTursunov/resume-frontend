@@ -15,6 +15,7 @@ const Login = ({ setCurrentPage, onClose }: ILogin) => {
 	const navigate = useNavigate()
 	const [email, setEmail] = useState<string>('')
 	const [password, setPassword] = useState<string>('')
+	const [loginError, setloginError] = useState('')
 	const [emailError, setEmailError] = useState('')
 	const [passwordError, setPasswordError] = useState('')
 	const { updateUser, setLoading, loading } = useContext(UserContext)
@@ -28,10 +29,14 @@ const Login = ({ setCurrentPage, onClose }: ILogin) => {
 			try {
 				const response = await axiosInstance.post(API_PATHS.AUTH.LOGIN, { email, password })
 				updateUser(response.data)
-				onClose()
 				navigate('/dashboard')
-			} catch (error) {
-				console.error('Login feiled Please try again')
+			} catch (error: any) {
+				if (error.response && error.response.status == 404 && error.response.data?.message) {
+					setloginError(error.response.data.message)
+				}
+				setTimeout(() => {
+					setloginError('')
+				}, 2000)
 			} finally {
 				setLoading(false)
 			}
@@ -41,7 +46,8 @@ const Login = ({ setCurrentPage, onClose }: ILogin) => {
 		<div className='w-[90vw] md:w-[40vw] flex flex-col justify-center'>
 			<h3 className='text-lg font-semibold text-black'>Welcome Back</h3>
 			<p className='text-xs text-slate-700 mt-1.5 mb-6'>Please enter your details</p>
-			<form action='POST' onSubmit={handleLogin}>
+
+			<form onSubmit={handleLogin}>
 				<Input
 					value={email}
 					onChange={event => setEmail(event.target.value)}
@@ -58,7 +64,11 @@ const Login = ({ setCurrentPage, onClose }: ILogin) => {
 					type={'password'}
 				/>
 				{passwordError && <p className='text-red-500 text-xs pb-2.5'>{passwordError}</p>}
-
+				{loginError && (
+					<p className='text-red-500 text-xs py-2 my-2 w-full rounded-md flex items-center justify-center bg-red-200'>
+						{loginError}
+					</p>
+				)}
 				<button type='submit' className='btn-primary flex items-center justify-center'>
 					{loading ? <BiLoaderCircle className='size-5 animate-spin' /> : 'LOGIN'}
 				</button>
