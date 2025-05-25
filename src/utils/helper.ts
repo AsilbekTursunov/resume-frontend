@@ -113,13 +113,13 @@ export const fixTailwindColors = (element: HTMLElement) => {
 
 // convert component to image
 export async function captureElementAsImage(element: HTMLDivElement) {
-	if (!element) throw new Error('No element provided')
+	// ⏳ Rasmlarni yuklanishini kuting
+	await waitForImagesToLoad(element)
 
 	const canvas = await html2canvas(element, {
-		scale: 3, // Yuqori rezolyutsiya uchun
+		scale: 1, // Sifatni oshirish uchun (ixtiyoriy)
 	})
-
-	return canvas.toDataURL('image/png') // Yuqori sifatli JPEG
+	return canvas.toDataURL('image/png')
 }
 
 // Utility to convert base64 data URL to a File object
@@ -145,4 +145,16 @@ export const pxToMm = (px: number, element: HTMLDivElement) => {
 
 export const mmToPx = (mm: number, element: HTMLDivElement) => {
 	return element.offsetHeight * mm
+}
+
+export const waitForImagesToLoad = (container: HTMLElement) => {
+	const images = container.querySelectorAll('img')
+	return Promise.all(
+		Array.from(images).map(img => {
+			if (img.complete) return Promise.resolve()
+			return new Promise(resolve => {
+				img.onload = img.onerror = resolve
+			})
+		})
+	)
 }

@@ -3,7 +3,12 @@ import toast from 'react-hot-toast'
 import { useNavigate, useParams } from 'react-router-dom'
 import axiosInstance from '../../utils/axiosInstance'
 import { API_PATHS } from '../../utils/apiPaths'
-import { captureElementAsImage, dataURLtoFile, fixTailwindColors } from '../../utils/helper'
+import {
+	captureElementAsImage,
+	dataURLtoFile,
+	fixTailwindColors,
+	waitForImagesToLoad,
+} from '../../utils/helper'
 import { LuArrowLeft, LuCircleAlert, LuDownload, LuPalette, LuSave, LuTrash2 } from 'react-icons/lu'
 import StepProgress from '../../components/StepProgress'
 import TitleInput from '../../components/Inputs/TitleInput'
@@ -22,13 +27,15 @@ import Modal from '../../components/Modal'
 import ThemeSelector from './ThemeSelector'
 import { uploadImage } from '../../utils/uploadImage'
 import jsPDF from 'jspdf'
+import { useReactToPrint } from 'react-to-print'
+import html2canvas from 'html2canvas'
 
 const EditResume = () => {
 	const { id: resumeId } = useParams()
 	const navigate = useNavigate()
 
 	const resumeRef = useRef<HTMLDivElement>(null)
-
+	const resumeDownloadRef = useRef<HTMLDivElement>(null)
 	const [baseWidth, setBaseWidth] = useState(800)
 
 	const [openThemeSelector, setOpenThemeSelector] = useState(false)
@@ -442,8 +449,8 @@ const EditResume = () => {
 			const imageDataUrl = await captureElementAsImage(resumeRef.current!)
 
 			// Convert base64 to File
-			const thumbnailFile = dataURLtoFile(imageDataUrl, `resume-${resumeId}.png`)
-
+			const thumbnailFile = dataURLtoFile(imageDataUrl, `resume-${Date.now()}.png`)
+			await uploadImage(thumbnailFile)
 			const profileImageFile = resumeData?.profileInfo?.profileImg || null
 
 			const formData = new FormData()
@@ -513,34 +520,38 @@ const EditResume = () => {
 			setIsLoading(false)
 		}
 	}
-	// const reactToPrintFn = useReactToPrint({
-	// 	contentRef: resumeDownloadRef,
-	// 	ignoreGlobalStyles: false,
-	// 	pageStyle: `width: 100%; height: auto; padding: 0; margin: 0;`,
-	// })
 
 	// download resume
 	const reactToPrintFn = async () => {
 		const element = document.getElementById('resume')
-		fixTailwindColors(element!)
-		const imageBaseUrl = await captureElementAsImage(element as HTMLDivElement)
-		const thumbnailFile = dataURLtoFile(imageBaseUrl, `resume-${resumeId}.png`)
-		const url = URL.createObjectURL(thumbnailFile)
-		// // Rasmni yuklab olish
+		if (!element) return
+
+		fixTailwindColors(element)
+		await waitForImagesToLoad(element)
+		const canva = await html2canvas(element, {
+			scale: 3,
+			useCORS: true,
+		})
+		const imgData = canva.toDataURL('image/png')
 		const image = new Image()
-		image.src = url
+		image.src = imgData
+		image.crossOrigin = 'Anonymous' // Handle CORS issues
+		await new Promise(resolve => {
+			image.onload = resolve
+		})
 
-		image.onload = () => {
-			const pdf = new jsPDF({
-				orientation: image.width > image.height ? 'landscape' : 'portrait',
-				unit: 'px',
-				format: [image.width, image.height], // PDFni rasm o‘lchamida yaratish
-				compress: true,
-			})
-
-			pdf.addImage(imageBaseUrl, 'JPEG', 0, 0, image.width, image.height, 'FAST')
-			pdf.save(`${Date.now()}.pdf`)
-		}
+		const pdf = new jsPDF({
+			orientation: 'portrait',
+			unit: 'px',
+			format: [element.offsetWidth, element.offsetHeight],
+			compression: 'DEFLATE',
+		})
+		const width = pdf.internal.pageSize.getWidth()
+		const height = canva.height * (width / canva.width)
+		pdf.addImage(image, 'PNG', 0, 0, width, height)
+		pdf.save(`${Date.now()}.pdf`)
+		setOpenPreviewModal(false)
+		toast.success('Resume downloaded successfully!')
 	}
 
 	// Function to update baseWidth based on the resume container size
@@ -562,6 +573,7 @@ const EditResume = () => {
 			window.removeEventListener('resize', updateBaseWidth)
 		}
 	}, [])
+	console.log(resumeData)
 
 	return (
 		<DashboardLayout>
@@ -681,7 +693,7 @@ const EditResume = () => {
 				ActionBtnIcon={LuDownload}
 				onActionClick={() => reactToPrintFn()}
 			>
-				<div id='my-resume' className='w-[90vw] h-[85vh] flex flex-col'>
+				<div ref={resumeDownloadRef} id='my-resume' className='w-[90vw] h-[85vh] flex flex-col'>
 					<RenderResume
 						templateId={resumeData?.template?.theme || ''}
 						resumeData={resumeData}
